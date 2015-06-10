@@ -14,7 +14,7 @@ import java.net.UnknownHostException;
 public class core_transport_add implements Command {
 
     public int execute(Meterpreter meterpreter, TLVPacket request, TLVPacket response) throws Exception {
-//        response.add(TLVType.TLV_TYPE_MACHINE_ID, machine_id);
+        meterpreter.getTransport().createTransportFromPacket(request);
         return ERROR_SUCCESS;
     }
 }
