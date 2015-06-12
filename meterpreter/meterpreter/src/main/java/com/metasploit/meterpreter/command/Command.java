@@ -22,6 +22,11 @@ public interface Command {
     public static final int ERROR_FAILURE = 1;
 
     /**
+     * Status code representing a successful running of command, which should break out the main dispatch loop.
+     */
+    public static final int ERROR_SHUTDOWN = -1;
+
+    /**
      * Execute this command.
      *
      * @param request     request packet

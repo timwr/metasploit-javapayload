@@ -15,6 +15,8 @@ public class Transport {
         String url = request.getStringValue(TLVType.TLV_TYPE_STRING);
         int sessionExpirationTimeout = request.getIntValue(TLVType.TLV_TYPE_UINT);
         int sessionCommunicationTimeout = request.getIntValue(TLVType.TLV_TYPE_LENGTH);
+        TransportObject transportObject = (TransportObject) transportList.get(0);
+        transportObject.url = url;
     }
 
     public static class TransportObject {

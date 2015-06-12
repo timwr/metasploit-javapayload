@@ -14,7 +14,7 @@ import java.net.UnknownHostException;
 public class core_transport_sleep implements Command {
 
     public int execute(Meterpreter meterpreter, TLVPacket request, TLVPacket response) throws Exception {
-//        response.add(TLVType.TLV_TYPE_MACHINE_ID, machine_id);
-        return ERROR_SUCCESS;
+        meterpreter.getTransport().transport_next_wait = request.getIntValue(TLVType.TLV_TYPE_TRANS_COMM_TIMEOUT);
+        return ERROR_SHUTDOWN;
     }
 }
